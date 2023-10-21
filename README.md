@@ -1,7 +1,7 @@
 
 <h1 align="center">succ</h1>
 
-<h3 align="center">Succ up some domains from MS</h3>
+<h3 align="center">Suck up some domains from MS</h3>
 
 ## Why? 
 
