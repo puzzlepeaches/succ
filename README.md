@@ -4,7 +4,6 @@
 <h3 align="center">Succ up some domains from MS</h3>
 
 ## Why? 
----
 
 `succ` is a simple command line tool that queries Microsoft for a list of domains associated with an Office 365 tenant. Specifically, it queries an Autodiscover endpoint using a specially crafted XML payload. The response contains a list of domains that are associated with the tenant.
 
@@ -22,7 +21,6 @@ Now, as a tester or bug bounty hunter, you can simply run `succ` and get a list 
 <br>
 
 ## Installation
----
 
 Installation is very simple. Once you have Go installed, simply run:
 
@@ -33,7 +31,6 @@ go install github.com/puzzlepeaches/succ@latest
 <br>
 
 ## Usage
----
 
 The help menu for `succ` is as follows:
 
@@ -61,7 +58,7 @@ The only additional option outside of the domain argument is output. This allows
 <br>
 
 ## Example
----
+
 _Insert corny bugbounty Tesla example below_
 
 ```bash
@@ -88,7 +85,6 @@ Note that the tool does not try to do anything fancy with the results. The only 
 <br>
 
 ## Planned Features
----
 
 * Add support for multiple domains
 * Add support for reading domains from a file
