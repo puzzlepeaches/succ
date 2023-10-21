@@ -91,6 +91,6 @@ Note that the tool does not try to do anything fancy with the results. The only 
 * Add support for reading domains from stdin
 * Add support for filtering out subdomains
 * Add support for filtering out domains that do not resolve
-* Add JSONL output format
+* Add JSONL output format support
 
 
