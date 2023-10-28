@@ -2,18 +2,27 @@ package cmd
 
 import (
 	"bytes"
+	"context"
+	"crypto/tls"
 	"encoding/xml"
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"strings"
+
+	"encoding/json"
+
+	"golang.org/x/net/proxy"
 )
 
 type Succer struct {
 	domain       string
 	output       string
+	outputJson   bool
+	socksProxy   string
 	FoundDomains []string
 }
 
@@ -34,23 +43,49 @@ func (s *Succer) Run() error {
 	// Get the tenant domains
 	s.enumerateTenantDomains("")
 
-	if s.output != "" {
-		// Write to file
-		file, err := os.Create(s.output)
+	if s.outputJson {
+		// Construct the json data
+		jsonData := make(map[string]interface{})
+		jsonData["domains"] = s.FoundDomains
+		jsonData["source"] = s.domain
+
+		jsonOutput, err := json.Marshal(jsonData)
 		if err != nil {
-			log.Fatalf("Failed to create file: %v", err)
+			log.Fatalf("Failed to marshal data: %v", err)
 		}
-		defer file.Close()
-		for _, domain := range s.FoundDomains {
-			file.WriteString(domain + "\n")
+		if s.output != "" {
+			// Write to file
+			file, err := os.Create(s.output)
+			if err != nil {
+				log.Fatalf("Failed to create file: %v", err)
+			}
+			defer file.Close()
+			_, err = file.Write(jsonOutput)
+			if err != nil {
+				log.Fatalf("Failed to write to file: %v", err)
+			}
+		} else {
+			// Write to stdout
+			fmt.Println(string(jsonOutput))
 		}
 	} else {
-		// Write to stdout
-		for _, domain := range s.FoundDomains {
-			fmt.Println(domain)
+		if s.output != "" {
+			// Write to file
+			file, err := os.Create(s.output)
+			if err != nil {
+				log.Fatalf("Failed to create file: %v", err)
+			}
+			defer file.Close()
+			for _, domain := range s.FoundDomains {
+				file.WriteString(domain + "\n")
+			}
+		} else {
+			// Write to stdout
+			for _, domain := range s.FoundDomains {
+				fmt.Println(domain)
+			}
 		}
 	}
-
 	return nil
 }
 
@@ -80,6 +115,9 @@ func (s *Succer) constructXML() string {
 }
 
 func (s *Succer) enumerateTenantDomains(userAgent string) []string {
+
+	var httpClient *http.Client
+
 	if userAgent == "" {
 		userAgent = "AutodiscoverClient"
 	}
@@ -94,7 +132,25 @@ func (s *Succer) enumerateTenantDomains(userAgent string) []string {
 	xmlData := []byte(strings.TrimSpace(xmlBody))
 	endpoint := "https://autodiscover-s.outlook.com/autodiscover/autodiscover.svc"
 
-	client := &http.Client{}
+	if s.socksProxy != "" {
+		dialer, err := proxy.SOCKS5("tcp", s.socksProxy, nil, proxy.Direct)
+		if err != nil {
+			log.Fatalf("Failed to create proxy dialer: %v", err)
+			return nil // Added a return to gracefully exit the function
+		}
+		httpTransport := &http.Transport{
+			DialContext: func(_ context.Context, network, addr string) (net.Conn, error) {
+				return dialer.Dial(network, addr)
+			},
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: true,
+			},
+		}
+		httpClient = &http.Client{Transport: httpTransport}
+	} else {
+		httpClient = &http.Client{}
+	}
+
 	req, err := http.NewRequest("POST", endpoint, bytes.NewReader(xmlData))
 	if err != nil {
 		log.Fatalf("Failed to create request: %v", err)
@@ -105,7 +161,7 @@ func (s *Succer) enumerateTenantDomains(userAgent string) []string {
 		req.Header.Set(key, value)
 	}
 
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		log.Fatalf("Failed to send request: %v", err)
 		return nil // Added a return to gracefully exit the function

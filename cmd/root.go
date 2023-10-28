@@ -9,7 +9,9 @@ import (
 )
 
 var (
-	domain string
+	domain     string
+	outputJson bool
+	socksProxy string
 )
 
 // rootCmd represents the base command when called without any subcommands
@@ -26,6 +28,8 @@ var rootCmd = &cobra.Command{
 		}
 
 		outputFile, _ := cmd.Flags().GetString("output")
+		socksProxy, _ := cmd.Flags().GetString("proxy")
+		outputJson, _ := cmd.Flags().GetBool("json")
 
 		if outputFile != "" {
 			if _, err := os.Stat(outputFile); os.IsExist(err) {
@@ -42,8 +46,10 @@ var rootCmd = &cobra.Command{
 
 		// Call the succer
 		s := Succer{
-			domain: domain,
-			output: outputFile,
+			domain:     domain,
+			output:     outputFile,
+			outputJson: outputJson,
+			socksProxy: socksProxy,
 		}
 		if err := s.Run(); err != nil {
 			logrus.Fatalf("Error running Succer: %v", err)
@@ -65,5 +71,6 @@ func init() {
 
 	// rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.generated code example.yaml)")
 	rootCmd.PersistentFlags().StringP("output", "o", "", "Output file.")
-
+	rootCmd.PersistentFlags().BoolP("json", "j", false, "Output to json.")
+	rootCmd.PersistentFlags().StringP("proxy", "p", "", "SOCKS5 proxy to use.")
 }
