@@ -109,7 +109,6 @@ $ succ tesla.com -j -p 127.0.0.1:8888 | jq
 
 * Add support for multiple domains
 * Add support for reading domains from a file
-* Add support for reading domains from stdin
 * Add support for filtering out domains that do not resolve
 
 
