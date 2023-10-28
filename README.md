@@ -46,8 +46,11 @@ Available Commands:
   version     Print the version number of generated code example
 
 Flags:
+  -e, --exclude-subs    Exclude subdomains from the results.
   -h, --help            help for succ
+  -j, --json            Output to json.
   -o, --output string   Output file.
+  -p, --proxy string    SOCKS5 proxy to use.
 
 Use "succ [command] --help" for more information about a command.
 ```
@@ -73,14 +76,32 @@ service.tesla.com
 c.tesla.com
 mta.tesla.com
 m.tesla.com
-siilion.com
-teslaalerts.com
-teslagrohmannautomation.de
-t.tesla.com
-solarcity.com
 ```
 
-Note that the tool does not try to do anything fancy with the results. The only post-processing we do involves the removal of onmicrosoft.com domains. We may in future releases look to filter out subdomains but for now I find it useful. 
+Example with JSON output and socks5 proxy:
+
+```bash
+$ succ tesla.com -j -p 127.0.0.1:8888 | jq
+
+{
+  "domains": [
+    "service.tesla.com",
+    "teslaalerts.com",
+    "c.tesla.com",
+    "teslagrohmannautomation.de",
+    "solarcity.com",
+    "t.tesla.com",
+    "m.tesla.com",
+    "tesla.com",
+    "siilion.com",
+    "mta.tesla.com",
+    "tesla.services",
+    "teslamotors.com",
+    "perbix.com"
+  ],
+  "source": "tesla.com"
+}
+```
 
 <br>
 
@@ -89,8 +110,6 @@ Note that the tool does not try to do anything fancy with the results. The only 
 * Add support for multiple domains
 * Add support for reading domains from a file
 * Add support for reading domains from stdin
-* Add support for filtering out subdomains
 * Add support for filtering out domains that do not resolve
-* Add JSONL output format support
 
 

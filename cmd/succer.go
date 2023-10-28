@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -23,6 +24,7 @@ type Succer struct {
 	output       string
 	outputJson   bool
 	socksProxy   string
+	excludeSubs  bool
 	FoundDomains []string
 }
 
@@ -54,31 +56,39 @@ func (s *Succer) Run() error {
 			log.Fatalf("Failed to marshal data: %v", err)
 		}
 		if s.output != "" {
-			// Write to file
-			file, err := os.Create(s.output)
+			// Open file in append mode
+			file, err := os.OpenFile(s.output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
-				log.Fatalf("Failed to create file: %v", err)
+				log.Fatalf("Failed to open file: %v", err)
 			}
 			defer file.Close()
-			_, err = file.Write(jsonOutput)
+			writer := bufio.NewWriter(file)
+			_, err = writer.Write(jsonOutput)
 			if err != nil {
 				log.Fatalf("Failed to write to file: %v", err)
 			}
+			writer.WriteString("\n")
+			writer.Flush() // Ensure that the file is flushed after writing each domain's results
 		} else {
 			// Write to stdout
 			fmt.Println(string(jsonOutput))
 		}
 	} else {
 		if s.output != "" {
-			// Write to file
-			file, err := os.Create(s.output)
+			// Open file in append mode
+			file, err := os.OpenFile(s.output, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
-				log.Fatalf("Failed to create file: %v", err)
+				log.Fatalf("Failed to open file: %v", err)
 			}
 			defer file.Close()
+			writer := bufio.NewWriter(file)
 			for _, domain := range s.FoundDomains {
-				file.WriteString(domain + "\n")
+				_, err := writer.WriteString(domain + "\n")
+				if err != nil {
+					log.Fatalf("Failed to write to file: %v", err)
+				}
 			}
+			writer.Flush()
 		} else {
 			// Write to stdout
 			for _, domain := range s.FoundDomains {
@@ -190,12 +200,24 @@ func (s *Succer) enumerateTenantDomains(userAgent string) []string {
 	domainList := envelope.Body.GetFederationInformationResponseMessage.Response.Domains.Domain
 
 	// Storing the list of domains
-	// Remove the onmicrosoft.com domains and lowercase contents
+	// Remove the onmicrosoft.com domains, subdomains and lowercase contents
 	for _, domain := range domainList {
 		if !strings.Contains(domain, "onmicrosoft") {
 			// lowercase the domain
-			s.FoundDomains = append(s.FoundDomains, strings.ToLower(domain))
+			domain = strings.ToLower(domain)
 
+			// split the domain into parts
+			if s.excludeSubs {
+				parts := strings.Split(domain, ".")
+
+				// if the domain has more than two parts, it might be a subdomain
+				// in that case, we only keep the last two parts
+				if len(parts) > 2 {
+					domain = parts[len(parts)-2] + "." + parts[len(parts)-1]
+				}
+			}
+
+			s.FoundDomains = append(s.FoundDomains, domain)
 		}
 	}
 
